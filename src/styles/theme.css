@@ -122,10 +122,40 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+
+  input, textarea {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  html {
+    overscroll-behavior: none;
+    overflow: hidden;
+    height: 100%;
   }
 
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  #root {
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    scrollbar-width: none;
+  }
+
+  #root::-webkit-scrollbar {
+    display: none;
   }
 
   /**
