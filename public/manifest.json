@@ -1,0 +1,18 @@
+{
+  "short_name": "dB Conv",
+  "name": "Децибелы / дБм",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/Converter/",
+  "scope": "/Converter/",
+  "background_color": "#0d0d0f",
+  "theme_color": "#0d0d0f",
+  "display": "standalone",
+  "orientation": "portrait"
+}
