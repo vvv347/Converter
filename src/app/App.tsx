@@ -1,307 +1,291 @@
-import { useState, useCallback } from "react";
-import { ArrowLeftRight, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpDown } from "lucide-react";
 
-type Unit = { label: string; symbol: string };
-type Category = {
-  name: string;
-  icon: string;
-  units: Unit[];
-  convert: (value: number, from: string, to: string) => number;
-};
-
-const categories: Category[] = [
-  {
-    name: "Температура",
-    icon: "🌡",
-    units: [
-      { label: "Цельсий", symbol: "°C" },
-      { label: "Фаренгейт", symbol: "°F" },
-      { label: "Кельвин", symbol: "K" },
-    ],
-    convert(value, from, to) {
-      let celsius = value;
-      if (from === "°F") celsius = (value - 32) * 5 / 9;
-      else if (from === "K") celsius = value - 273.15;
-      if (to === "°C") return celsius;
-      if (to === "°F") return celsius * 9 / 5 + 32;
-      return celsius + 273.15;
-    },
-  },
-  {
-    name: "Длина",
-    icon: "📏",
-    units: [
-      { label: "Метр", symbol: "м" },
-      { label: "Километр", symbol: "км" },
-      { label: "Сантиметр", symbol: "см" },
-      { label: "Миллиметр", symbol: "мм" },
-      { label: "Дюйм", symbol: "дюйм" },
-      { label: "Фут", symbol: "фут" },
-      { label: "Миля", symbol: "миля" },
-    ],
-    convert(value, from, to) {
-      const toMeters: Record<string, number> = {
-        "м": 1, "км": 1000, "см": 0.01, "мм": 0.001,
-        "дюйм": 0.0254, "фут": 0.3048, "миля": 1609.344,
-      };
-      return value * toMeters[from] / toMeters[to];
-    },
-  },
-  {
-    name: "Масса",
-    icon: "⚖️",
-    units: [
-      { label: "Килограмм", symbol: "кг" },
-      { label: "Грамм", symbol: "г" },
-      { label: "Миллиграмм", symbol: "мг" },
-      { label: "Тонна", symbol: "т" },
-      { label: "Фунт", symbol: "фунт" },
-      { label: "Унция", symbol: "унция" },
-    ],
-    convert(value, from, to) {
-      const toKg: Record<string, number> = {
-        "кг": 1, "г": 0.001, "мг": 0.000001, "т": 1000,
-        "фунт": 0.453592, "унция": 0.0283495,
-      };
-      return value * toKg[from] / toKg[to];
-    },
-  },
-  {
-    name: "Объём",
-    icon: "🧪",
-    units: [
-      { label: "Литр", symbol: "л" },
-      { label: "Миллилитр", symbol: "мл" },
-      { label: "Кубометр", symbol: "м³" },
-      { label: "Галлон (US)", symbol: "гал" },
-      { label: "Пинта (US)", symbol: "пинта" },
-    ],
-    convert(value, from, to) {
-      const toLiters: Record<string, number> = {
-        "л": 1, "мл": 0.001, "м³": 1000, "гал": 3.78541, "пинта": 0.473176,
-      };
-      return value * toLiters[from] / toLiters[to];
-    },
-  },
-  {
-    name: "Скорость",
-    icon: "💨",
-    units: [
-      { label: "м/с", symbol: "м/с" },
-      { label: "км/ч", symbol: "км/ч" },
-      { label: "миль/ч", symbol: "mph" },
-      { label: "узлы", symbol: "уз" },
-    ],
-    convert(value, from, to) {
-      const toMs: Record<string, number> = {
-        "м/с": 1, "км/ч": 1 / 3.6, "mph": 0.44704, "уз": 0.514444,
-      };
-      return value * toMs[from] / toMs[to];
-    },
-  },
-  {
-    name: "Площадь",
-    icon: "▭",
-    units: [
-      { label: "м²", symbol: "м²" },
-      { label: "км²", symbol: "км²" },
-      { label: "см²", symbol: "см²" },
-      { label: "Гектар", symbol: "га" },
-      { label: "Акр", symbol: "акр" },
-      { label: "фут²", symbol: "фут²" },
-    ],
-    convert(value, from, to) {
-      const toM2: Record<string, number> = {
-        "м²": 1, "км²": 1e6, "см²": 0.0001, "га": 10000,
-        "акр": 4046.856, "фут²": 0.092903,
-      };
-      return value * toM2[from] / toM2[to];
-    },
-  },
-];
-
-function formatResult(n: number): string {
-  if (!isFinite(n)) return "—";
+function fmt(n: number): string {
+  if (!isFinite(n) || isNaN(n)) return "—";
   if (Math.abs(n) >= 1e9 || (Math.abs(n) < 0.0001 && n !== 0)) {
     return n.toExponential(4);
   }
-  const str = n.toPrecision(7);
-  return parseFloat(str).toString();
+  return parseFloat(n.toPrecision(6)).toString();
 }
 
-function UnitPicker({
-  units,
+function NumInput({
+  label,
+  unit,
   value,
   onChange,
 }: {
-  units: Unit[];
+  label: string;
+  unit: string;
   value: string;
   onChange: (v: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const current = units.find((u) => u.symbol === value);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        {label}
+      </span>
+      <div className="relative">
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          inputMode="decimal"
+          placeholder="0"
+          className="w-full bg-secondary rounded-xl px-4 py-4 pr-16 text-2xl font-semibold text-foreground outline-none border border-border focus:border-primary transition-colors"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+        />
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+          {unit}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ResultBox({ label, unit, value }: { label: string; unit: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        {label}
+      </span>
+      <div className="relative w-full bg-muted rounded-xl px-4 py-4 pr-16">
+        <span
+          className="text-2xl font-semibold"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: value === "—" ? "var(--muted-foreground)" : "var(--primary)" }}
+        >
+          {value}
+        </span>
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+          {unit}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function FormulaTag({ text }: { text: string }) {
+  return (
+    <div className="px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary inline-block" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+      {text}
+    </div>
+  );
+}
+
+function SwapBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-all text-xs font-medium self-center"
+    >
+      <ArrowUpDown size={13} />
+      Поменять
+    </button>
+  );
+}
+
+// ── 1. Раз ↔ дБ ──────────────────────────────────────────────────────────────
+function RazToDb() {
+  const [dir, setDir] = useState<"raz2db" | "db2raz">("raz2db");
+  const [val, setVal] = useState("10");
+
+  const n = parseFloat(val);
+  let result = "—";
+  if (dir === "raz2db") {
+    if (!isNaN(n) && n > 0) result = fmt(10 * Math.log10(n));
+  } else {
+    if (!isNaN(n)) result = fmt(Math.pow(10, n / 10));
+  }
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 px-4 py-3 bg-secondary rounded-xl border border-border text-foreground font-medium w-full justify-between transition-colors hover:bg-secondary/80"
-        style={{ fontFamily: "'Inter', sans-serif" }}
-      >
-        <span>
-          <span className="text-primary font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {current?.symbol}
-          </span>
-          <span className="text-muted-foreground text-sm ml-2">{current?.label}</span>
-        </span>
-        <ChevronDown
-          size={16}
-          className={`text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
-        />
-      </button>
-      {open && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
-          {units.map((u) => (
-            <button
-              key={u.symbol}
-              onClick={() => { onChange(u.symbol); setOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary ${
-                u.symbol === value ? "bg-primary/10 text-primary" : "text-foreground"
-              }`}
-            >
-              <span
-                className="text-sm font-medium w-12 shrink-0"
-                style={{ fontFamily: "'JetBrains Mono', monospace", color: u.symbol === value ? "var(--primary)" : "var(--muted-foreground)" }}
-              >
-                {u.symbol}
-              </span>
-              <span className="text-sm">{u.label}</span>
-            </button>
-          ))}
+    <div className="bg-card rounded-2xl border border-border p-5 flex flex-col gap-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Раз ↔ дБ</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Коэффициент передачи мощности</p>
         </div>
+        <SwapBtn onClick={() => setDir(d => d === "raz2db" ? "db2raz" : "raz2db")} />
+      </div>
+      {dir === "raz2db" ? (
+        <>
+          <FormulaTag text="dB = 10 · log₁₀(раз)" />
+          <NumInput label="Раз" unit="×" value={val} onChange={setVal} />
+          <ResultBox label="Результат" unit="дБ" value={result} />
+        </>
+      ) : (
+        <>
+          <FormulaTag text="раз = 10^(dB / 10)" />
+          <NumInput label="дБ" unit="дБ" value={val} onChange={setVal} />
+          <ResultBox label="Результат" unit="×" value={result} />
+        </>
       )}
     </div>
   );
 }
 
+// ── 2. Вт ↔ дБм ──────────────────────────────────────────────────────────────
+function WattToDbm() {
+  const [dir, setDir] = useState<"w2dbm" | "dbm2w">("w2dbm");
+  const [val, setVal] = useState("0.001");
+
+  const n = parseFloat(val);
+  let result = "—";
+  if (dir === "w2dbm") {
+    if (!isNaN(n) && n > 0) result = fmt(10 * Math.log10(n) + 30);
+  } else {
+    if (!isNaN(n)) result = fmt(Math.pow(10, (n - 30) / 10));
+  }
+
+  return (
+    <div className="bg-card rounded-2xl border border-border p-5 flex flex-col gap-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Вт ↔ дБм</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Мощность сигнала</p>
+        </div>
+        <SwapBtn onClick={() => setDir(d => d === "w2dbm" ? "dbm2w" : "w2dbm")} />
+      </div>
+      {dir === "w2dbm" ? (
+        <>
+          <FormulaTag text="dBm = 10 · log₁₀(P) + 30" />
+          <NumInput label="Мощность" unit="Вт" value={val} onChange={setVal} />
+          <ResultBox label="Результат" unit="дБм" value={result} />
+        </>
+      ) : (
+        <>
+          <FormulaTag text="P = 10^((dBm − 30) / 10)" />
+          <NumInput label="дБм" unit="дБм" value={val} onChange={setVal} />
+          <ResultBox label="Результат" unit="Вт" value={result} />
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── 3. Напряжение ↔ дБм ──────────────────────────────────────────────────────
+function VoltToDbm() {
+  const [dir, setDir] = useState<"v2dbm" | "dbm2v">("dbm2v");
+  const [val, setVal] = useState("0");
+  const [r, setR] = useState("50");
+
+  const n = parseFloat(val);
+  const rOhm = parseFloat(r);
+  let result = "—";
+
+  if (dir === "dbm2v") {
+    // U = sqrt(P · R), P = 10^((dBm-30)/10)
+    if (!isNaN(n) && !isNaN(rOhm) && rOhm > 0) {
+      const p = Math.pow(10, (n - 30) / 10);
+      result = fmt(Math.sqrt(p * rOhm));
+    }
+  } else {
+    // dBm = 10·log10(U²/R) + 30
+    if (!isNaN(n) && !isNaN(rOhm) && rOhm > 0 && n !== 0) {
+      result = fmt(10 * Math.log10((n * n) / rOhm) + 30);
+    }
+  }
+
+  return (
+    <div className="bg-card rounded-2xl border border-border p-5 flex flex-col gap-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Напряжение RMS ↔ дБм</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">С учётом импеданса</p>
+        </div>
+        <SwapBtn onClick={() => setDir(d => d === "dbm2v" ? "v2dbm" : "dbm2v")} />
+      </div>
+      {dir === "dbm2v" ? (
+        <>
+          <FormulaTag text="U = √(10^((dBm−30)/10) · R)" />
+          <NumInput label="дБм" unit="дБм" value={val} onChange={setVal} />
+        </>
+      ) : (
+        <>
+          <FormulaTag text="dBm = 10 · log₁₀(U² / R) + 30" />
+          <NumInput label="Напряжение RMS" unit="В" value={val} onChange={setVal} />
+        </>
+      )}
+      {/* R field */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+          Импеданс R
+        </span>
+        <div className="relative">
+          <input
+            type="number"
+            value={r}
+            onChange={(e) => setR(e.target.value)}
+            inputMode="decimal"
+            placeholder="50"
+            className="w-full bg-secondary rounded-xl px-4 py-3 pr-16 text-lg font-semibold text-foreground outline-none border border-border focus:border-primary/60 transition-colors"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            Ом
+          </span>
+        </div>
+      </div>
+      <ResultBox
+        label="Результат"
+        unit={dir === "dbm2v" ? "В" : "дБм"}
+        value={result}
+      />
+    </div>
+  );
+}
+
+const TABS = [
+  { id: "raz", label: "Раз / дБ", Component: RazToDb },
+  { id: "watt", label: "Вт / дБм", Component: WattToDbm },
+  { id: "volt", label: "В / дБм", Component: VoltToDbm },
+] as const;
+
+// ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [catIdx, setCatIdx] = useState(0);
-  const [fromUnit, setFromUnit] = useState(categories[0].units[0].symbol);
-  const [toUnit, setToUnit] = useState(categories[0].units[1].symbol);
-  const [inputValue, setInputValue] = useState("1");
-
-  const cat = categories[catIdx];
-
-  const selectCategory = useCallback((idx: number) => {
-    setCatIdx(idx);
-    setFromUnit(categories[idx].units[0].symbol);
-    setToUnit(categories[idx].units[1].symbol);
-    setInputValue("1");
-  }, []);
-
-  const swap = () => {
-    setFromUnit(toUnit);
-    setToUnit(fromUnit);
-  };
-
-  const numInput = parseFloat(inputValue);
-  const result = isNaN(numInput)
-    ? "—"
-    : formatResult(cat.convert(numInput, fromUnit, toUnit));
+  const [active, setActive] = useState<string>("raz");
+  const { Component } = TABS.find((t) => t.id === active)!;
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col items-center bg-background"
+      className="min-h-screen w-full flex flex-col items-center bg-background pb-12"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      {/* Header */}
-      <header className="w-full max-w-md px-4 pt-10 pb-4">
-        <p className="text-xs tracking-widest uppercase text-muted-foreground mb-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+      <header className="w-full max-w-md px-4 pt-10 pb-5">
+        <p
+          className="text-xs tracking-widest uppercase text-muted-foreground mb-1"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+        >
           Конвертер
         </p>
-        <h1 className="text-2xl font-bold text-foreground">Единицы измерения</h1>
+        <h1 className="text-2xl font-bold text-foreground">Децибелы / дБм</h1>
       </header>
 
-      {/* Category tabs */}
-      <div className="w-full max-w-md px-4 mb-6">
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {categories.map((c, i) => (
+      {/* Tab bar */}
+      <div className="w-full max-w-md px-4 mb-5">
+        <div className="flex bg-secondary rounded-xl p-1 border border-border gap-1">
+          {TABS.map((t) => (
             <button
-              key={c.name}
-              onClick={() => selectCategory(i)}
-              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                i === catIdx
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              key={t.id}
+              onClick={() => setActive(t.id)}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                t.id === active
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <span>{c.icon}</span>
-              <span>{c.name}</span>
+              {t.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Converter card */}
-      <div className="w-full max-w-md px-4 flex flex-col gap-4">
-
-        {/* From */}
-        <div className="bg-card rounded-2xl border border-border p-4 flex flex-col gap-3">
-          <label className="text-xs uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            Из
-          </label>
-          <UnitPicker units={cat.units} value={fromUnit} onChange={setFromUnit} />
-          <input
-            type="number"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="w-full bg-secondary rounded-xl px-4 py-4 text-3xl font-semibold text-foreground outline-none border border-border focus:border-primary transition-colors"
-            style={{ fontFamily: "'JetBrains Mono', monospace" }}
-            placeholder="0"
-            inputMode="decimal"
-          />
-        </div>
-
-        {/* Swap button */}
-        <div className="flex justify-center">
-          <button
-            onClick={swap}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-secondary border border-border text-muted-foreground hover:text-primary hover:border-primary transition-all text-sm font-medium"
-          >
-            <ArrowLeftRight size={15} />
-            <span>Поменять</span>
-          </button>
-        </div>
-
-        {/* To */}
-        <div className="bg-card rounded-2xl border border-border p-4 flex flex-col gap-3">
-          <label className="text-xs uppercase tracking-widest text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            В
-          </label>
-          <UnitPicker units={cat.units} value={toUnit} onChange={setToUnit} />
-          <div
-            className="w-full bg-muted rounded-xl px-4 py-4 text-3xl font-semibold"
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              color: result === "—" ? "var(--muted-foreground)" : "var(--primary)",
-            }}
-          >
-            {result}
-          </div>
-        </div>
-
-        {/* Formula hint */}
-        {!isNaN(numInput) && result !== "—" && (
-          <div className="text-center text-sm text-muted-foreground pb-2" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {numInput} {fromUnit} = {result} {toUnit}
-          </div>
-        )}
+      <div className="w-full max-w-md px-4">
+        <Component />
       </div>
 
-      {/* Footer */}
-      <div className="mt-auto pt-10 pb-6 text-center text-xs text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-        PWA · {new Date().getFullYear()}
-      </div>
+      <footer className="mt-8 text-xs text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        dB · dBm · PWA
+      </footer>
     </div>
   );
 }
