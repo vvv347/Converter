@@ -3,5 +3,11 @@
   import App from "./app/App.tsx";
   import "./styles/index.css";
 
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js');
+    });
+  }
+
   createRoot(document.getElementById("root")!).render(<App />);
   
