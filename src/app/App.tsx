@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowUpDown } from "lucide-react";
 
 function fmt(n: number): string {
-  if (!isFinite(n) || isNaN(n)) return "—";
+  if (!isFinite(n)) return "—";
   if (Math.abs(n) >= 1e9 || (Math.abs(n) < 0.0001 && n !== 0)) {
     return n.toExponential(4);
   }
@@ -104,7 +104,7 @@ function RazToDb() {
           <h2 className="text-base font-semibold text-foreground">Раз ↔ дБ</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Коэффициент передачи мощности</p>
         </div>
-        <SwapBtn onClick={() => setDir(d => d === "raz2db" ? "db2raz" : "raz2db")} />
+        <SwapBtn onClick={() => { setDir(d => d === "raz2db" ? "db2raz" : "raz2db"); setVal(""); }} />
       </div>
       {dir === "raz2db" ? (
         <>
@@ -143,7 +143,7 @@ function WattToDbm() {
           <h2 className="text-base font-semibold text-foreground">Вт ↔ дБм</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Мощность сигнала</p>
         </div>
-        <SwapBtn onClick={() => setDir(d => d === "w2dbm" ? "dbm2w" : "w2dbm")} />
+        <SwapBtn onClick={() => { setDir(d => d === "w2dbm" ? "dbm2w" : "w2dbm"); setVal(""); }} />
       </div>
       {dir === "w2dbm" ? (
         <>
@@ -192,7 +192,7 @@ function VoltToDbm() {
           <h2 className="text-base font-semibold text-foreground">Напряжение RMS ↔ дБм</h2>
           <p className="text-xs text-muted-foreground mt-0.5">С учётом импеданса</p>
         </div>
-        <SwapBtn onClick={() => setDir(d => d === "dbm2v" ? "v2dbm" : "dbm2v")} />
+        <SwapBtn onClick={() => { setDir(d => d === "dbm2v" ? "v2dbm" : "dbm2v"); setVal(""); }} />
       </div>
       {dir === "dbm2v" ? (
         <>
